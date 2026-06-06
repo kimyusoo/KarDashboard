@@ -35,3 +35,8 @@ _*.py
 
 # local editor / agent settings
 /.claude
+
+# QA / capture temp
+/shots
+/qa
+_*.mjs
