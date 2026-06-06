@@ -14,6 +14,8 @@ interface Props {
   // GeoJSON 키(`시도|시군구명`) → 값
   values: Record<string, RegionValue>;
   title?: string;
+  onSelect?: (regionKey: string, regionName: string) => void;
+  selectedKey?: string;
 }
 
 // 변동률 → 색상 (적색=상승, 청색=하락, 회색=데이터 없음)
@@ -29,7 +31,7 @@ function colorFor(v: number | undefined): string {
   return `rgb(${Math.round(70 - 30 * t)}, ${Math.round(120 + 30 * t)}, ${Math.round(160 + 70 * t)})`;
 }
 
-export default function KoreaMap({ values, title }: Props) {
+export default function KoreaMap({ values, title, onSelect, selectedKey }: Props) {
   const [geo, setGeo] = useState<FeatureCollection | null>(null);
   const [hover, setHover] = useState<{
     x: number;
@@ -76,13 +78,17 @@ export default function KoreaMap({ values, title }: Props) {
             const key = geoKeyFromFeature(f.properties);
             const val = values[key];
             const d = pathGen(f) ?? undefined;
+            const selected = selectedKey === key;
             return (
               <path
                 key={i}
                 d={d}
                 fill={colorFor(val?.changePct)}
-                stroke="#0b1120"
-                strokeWidth={0.4}
+                stroke={selected ? "#ffffff" : "#0b1120"}
+                strokeWidth={selected ? 1.4 : 0.4}
+                onClick={() =>
+                  onSelect?.(key, val?.name ?? f.properties.name)
+                }
                 onMouseMove={(e) => {
                   const rect = wrapRef.current?.getBoundingClientRect();
                   setHover({

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/", label: "주간 동향" },
   { href: "/insights", label: "심화분석 (ISCU)" },
+  { href: "/branches", label: "지회 안내" },
 ];
 
 export default function SiteNav() {
