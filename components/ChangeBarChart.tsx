@@ -21,26 +21,29 @@ export default function ChangeBarChart({ data }: { data: RegionPoint[] }) {
           layout="vertical"
           margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
         >
-          <CartesianGrid stroke="#26324f" strokeDasharray="3 3" horizontal={false} />
+          <CartesianGrid stroke="#eef1f7" strokeDasharray="3 3" horizontal={false} />
           <XAxis
             type="number"
-            tick={{ fill: "#93a1bd", fontSize: 11 }}
+            tick={{ fill: "#6b7488", fontSize: 11 }}
             tickFormatter={(v: number) => `${v}%`}
+            stroke="#c5cdda"
           />
           <YAxis
             type="category"
             dataKey="region"
-            tick={{ fill: "#c7d2e8", fontSize: 11 }}
+            tick={{ fill: "#1a2233", fontSize: 11 }}
             width={44}
+            stroke="#c5cdda"
           />
           <Tooltip
-            cursor={{ fill: "rgba(255,255,255,0.04)" }}
+            cursor={{ fill: "rgba(10,42,102,0.05)" }}
             contentStyle={{
-              background: "#1b2740",
-              border: "1px solid #26324f",
+              background: "#ffffff",
+              border: "1px solid #e3e8f1",
               borderRadius: 8,
-              color: "#e8edf7",
+              color: "#1a2233",
               fontSize: 12,
+              boxShadow: "0 8px 24px -12px rgba(12,28,64,.3)",
             }}
             formatter={(v: number) => [`${v}%`, "전주대비"]}
           />
@@ -50,10 +53,10 @@ export default function ChangeBarChart({ data }: { data: RegionPoint[] }) {
                 key={i}
                 fill={
                   d.changePct > 0
-                    ? "#ff5d73"
+                    ? "#d6232a"
                     : d.changePct < 0
-                      ? "#3b9dff"
-                      : "#8a94a8"
+                      ? "#1e5bbf"
+                      : "#8a94a6"
                 }
               />
             ))}

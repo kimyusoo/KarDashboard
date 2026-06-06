@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const LINKS = [
-  { href: "/", label: "주간 동향" },
-  { href: "/insights", label: "심화분석 (ISCU)" },
-  { href: "/branches", label: "지회 안내" },
-  { href: "/report", label: "리포트" },
+  { href: "/", label: "동향 · 핵심지표", icon: "📊" },
+  { href: "/insights", label: "AI 빅데이터", icon: "🧠" },
+  { href: "/branches", label: "지회 안내", icon: "📍" },
+  { href: "/report", label: "리포트", icon: "📄" },
+  { href: "/mobile", label: "모바일", icon: "📱" },
 ];
 
 export default function SiteNav() {
@@ -22,29 +23,48 @@ export default function SiteNav() {
   }
 
   return (
-    <nav className="site-nav">
-      <div className="site-nav-inner">
-        <Link href="/" className="brand">
-          🏠 KAR 부동산 인사이트
-        </Link>
-        <div className="nav-links">
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="nav-link"
-              data-active={
-                l.href === "/" ? path === "/" : path.startsWith(l.href)
-              }
-            >
-              {l.label}
-            </Link>
-          ))}
-          <button className="nav-link nav-logout" onClick={logout}>
-            로그아웃
-          </button>
+    <>
+      <div className="topbar">
+        <div className="topbar-inner">
+          <Link href="/" className="brand">
+            <span className="brand-mark">KAR</span>
+            <span className="brand-tt">
+              <span className="brand-name">부동산 인사이트</span>
+              <span className="brand-sub">한국공인중개사협회 회원 전용</span>
+            </span>
+          </Link>
+          <div className="topbar-spacer" />
+          <div className="topbar-right">
+            <button className="topbar-logout" onClick={logout}>
+              로그아웃
+            </button>
+          </div>
         </div>
       </div>
-    </nav>
+      <div className="menubar">
+        <div className="menubar-inner">
+          <div className="menubar-nav">
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="menubar-link"
+                data-active={
+                  l.href === "/" ? path === "/" : path.startsWith(l.href)
+                }
+              >
+                <span className="mb-ico">{l.icon}</span>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          <div className="menubar-srcs">
+            <span className="src-chip src-gov">부동산원 API</span>
+            <span className="src-chip src-kb">공공데이터</span>
+            <span className="src-chip src-iscu">ISCU AI</span>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

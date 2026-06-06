@@ -17,40 +17,43 @@ export default function TrendChart({ data }: { data: TrendPoint[] }) {
     <div style={{ width: "100%", height: 300 }}>
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 10, right: 16, left: -10, bottom: 0 }}>
-          <CartesianGrid stroke="#26324f" strokeDasharray="3 3" />
+          <CartesianGrid stroke="#eef1f7" strokeDasharray="3 3" />
           <XAxis
             dataKey="week"
-            tick={{ fill: "#93a1bd", fontSize: 11 }}
+            tick={{ fill: "#6b7488", fontSize: 11 }}
             tickFormatter={(v: string) => v.slice(5)}
             minTickGap={24}
+            stroke="#c5cdda"
           />
           <YAxis
             domain={["auto", "auto"]}
-            tick={{ fill: "#93a1bd", fontSize: 11 }}
+            tick={{ fill: "#6b7488", fontSize: 11 }}
             width={48}
+            stroke="#c5cdda"
           />
           <Tooltip
             contentStyle={{
-              background: "#1b2740",
-              border: "1px solid #26324f",
+              background: "#ffffff",
+              border: "1px solid #e3e8f1",
               borderRadius: 8,
-              color: "#e8edf7",
+              color: "#1a2233",
               fontSize: 12,
+              boxShadow: "0 8px 24px -12px rgba(12,28,64,.3)",
             }}
           />
-          <Legend wrapperStyle={{ fontSize: 12, color: "#93a1bd" }} />
+          <Legend wrapperStyle={{ fontSize: 12, color: "#6b7488" }} />
           <Line
             type="monotone"
             dataKey="매매"
-            stroke="#ff5d73"
-            strokeWidth={2}
+            stroke="#d6232a"
+            strokeWidth={2.2}
             dot={false}
           />
           <Line
             type="monotone"
             dataKey="전세"
-            stroke="#3b9dff"
-            strokeWidth={2}
+            stroke="#1e5bbf"
+            strokeWidth={2.2}
             dot={false}
           />
         </LineChart>

@@ -42,3 +42,7 @@ _*.py
 _*.mjs
 
 .vercel
+
+# 디자인 참고 자료 (앱 코드 아님)
+/SCU_data_design
+/SCU_data_design.zip

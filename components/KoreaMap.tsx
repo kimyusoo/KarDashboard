@@ -18,17 +18,19 @@ interface Props {
   selectedKey?: string;
 }
 
-// 변동률 → 색상 (적색=상승, 청색=하락, 회색=데이터 없음)
+// 변동률 → 색상 (적색=상승, 청색=하락, 회색=데이터 없음) · 라이트 배경용
 function colorFor(v: number | undefined): string {
-  if (v === undefined) return "#26324f";
-  if (v === 0) return "#5b6680";
-  const clamp = Math.max(-0.5, Math.min(0.5, v)) / 0.5; // -1..1
-  if (clamp > 0) {
-    const t = clamp; // 0..1
-    return `rgb(${Math.round(120 + 135 * t)}, ${Math.round(93 - 60 * t)}, ${Math.round(115 - 60 * t)})`;
+  if (v === undefined) return "#e3e8f1";
+  if (v === 0) return "#c5cdda";
+  const t = Math.max(-0.5, Math.min(0.5, v)) / 0.5; // -1..1
+  if (t > 0) {
+    // 연한 핑크 → KAR 레드
+    const k = t;
+    return `rgb(${Math.round(250 - 36 * k)}, ${Math.round(214 - 178 * k)}, ${Math.round(214 - 187 * k)})`;
   }
-  const t = -clamp;
-  return `rgb(${Math.round(70 - 30 * t)}, ${Math.round(120 + 30 * t)}, ${Math.round(160 + 70 * t)})`;
+  const k = -t;
+  // 연한 블루 → 네이비 블루
+  return `rgb(${Math.round(225 - 195 * k)}, ${Math.round(233 - 142 * k)}, ${Math.round(247 - 56 * k)})`;
 }
 
 export default function KoreaMap({ values, title, onSelect, selectedKey }: Props) {
@@ -84,8 +86,8 @@ export default function KoreaMap({ values, title, onSelect, selectedKey }: Props
                 key={i}
                 d={d}
                 fill={colorFor(val?.changePct)}
-                stroke={selected ? "#ffffff" : "#0b1120"}
-                strokeWidth={selected ? 1.4 : 0.4}
+                stroke={selected ? "#0a2a66" : "#ffffff"}
+                strokeWidth={selected ? 1.6 : 0.5}
                 onClick={() =>
                   onSelect?.(key, val?.name ?? f.properties.name)
                 }
@@ -111,14 +113,16 @@ export default function KoreaMap({ values, title, onSelect, selectedKey }: Props
             position: "absolute",
             left: hover.x + 12,
             top: hover.y + 12,
-            background: "#1b2740",
-            border: "1px solid #26324f",
+            background: "#ffffff",
+            border: "1px solid #e3e8f1",
             borderRadius: 8,
             padding: "6px 10px",
             fontSize: 12,
+            color: "#1a2233",
             pointerEvents: "none",
             whiteSpace: "nowrap",
             zIndex: 10,
+            boxShadow: "0 8px 24px -12px rgba(12,28,64,.3)",
           }}
         >
           <strong>{hover.label}</strong>
@@ -137,7 +141,7 @@ export default function KoreaMap({ values, title, onSelect, selectedKey }: Props
           gap: 6,
           marginTop: 8,
           fontSize: 11,
-          color: "#93a1bd",
+          color: "#6b7488",
         }}
       >
         <span>하락</span>
@@ -147,7 +151,7 @@ export default function KoreaMap({ values, title, onSelect, selectedKey }: Props
         <span style={{ width: 18, height: 12, background: colorFor(0.1), borderRadius: 2 }} />
         <span style={{ width: 18, height: 12, background: colorFor(0.4), borderRadius: 2 }} />
         <span>상승</span>
-        <span style={{ marginLeft: 10, width: 18, height: 12, background: "#26324f", borderRadius: 2 }} />
+        <span style={{ marginLeft: 10, width: 18, height: 12, background: "#e3e8f1", borderRadius: 2, border: "1px solid #d5dbe8" }} />
         <span>미조사</span>
       </div>
     </div>
