@@ -1,7 +1,13 @@
-import { getMarketSnapshot, type RegionPoint } from "@/lib/reb";
-import { getSampleTrades } from "@/lib/molit";
+import {
+  getMarketSnapshot,
+  getMonthlySnapshot,
+  type RegionPoint,
+} from "@/lib/reb";
+import { getSampleTrades, getAptComplexRanking } from "@/lib/molit";
+import { rebKeyFromFullName } from "@/lib/regions";
 import TrendChart from "@/components/TrendChart";
 import ChangeBarChart from "@/components/ChangeBarChart";
+import MapSection from "@/components/MapSection";
 
 export const revalidate = 21600; // 6시간
 
@@ -66,14 +72,32 @@ function RankTable({
   );
 }
 
+function buildMapValues(points: RegionPoint[]) {
+  const out: Record<string, { name: string; changePct: number }> = {};
+  for (const p of points) {
+    const key = rebKeyFromFullName(p.fullName);
+    if (!key) continue;
+    out[key] = { name: trimRegion(p.fullName), changePct: p.changePct };
+  }
+  return out;
+}
+
 export default async function Home() {
   const snap = await getMarketSnapshot();
-  let trades: Awaited<ReturnType<typeof getSampleTrades>> = [];
-  try {
-    trades = await getSampleTrades();
-  } catch {
-    trades = [];
-  }
+
+  const [monthlyRes, tradesRes, aptRankRes] = await Promise.allSettled([
+    getMonthlySnapshot(),
+    getSampleTrades(),
+    getAptComplexRanking(10),
+  ]);
+  const monthly =
+    monthlyRes.status === "fulfilled" ? monthlyRes.value : null;
+  const trades = tradesRes.status === "fulfilled" ? tradesRes.value : [];
+  const aptRank =
+    aptRankRes.status === "fulfilled" ? aptRankRes.value : null;
+
+  const saleMapValues = buildMapValues(snap.sigunguSaleAll);
+  const jeonseMapValues = buildMapValues(snap.sigunguJeonseAll);
 
   const { 매매: saleNat, 전세: jeonseNat } = snap.nationwide;
   const sidoSaleTop = snap.sidoSale[0];
@@ -169,9 +193,86 @@ export default async function Home() {
         <RankTable rows={snap.sigunguJeonseTop} title="전세 상승률 TOP 10 (시군구)" />
       </div>
 
-      {/* 5. 거래량 (공공데이터 실거래) */}
+      {/* 5. 전국 시군구 코로플레스 지도 */}
       <div className="section-title">
-        <span className="num">5</span> 아파트 매매 거래량·평균가{" "}
+        <span className="num">5</span> 전국 시군구 변동률 지도
+      </div>
+      <MapSection sale={saleMapValues} jeonse={jeonseMapValues} />
+
+      {/* 6. 월세 동향 (월간) */}
+      <div className="section-title">
+        <span className="num">6</span> 월세 동향{" "}
+        <span className="pill">월간 · {monthly?.latestMonth ?? "—"}</span>
+      </div>
+      {monthly ? (
+        <>
+          <div className="grid grid-3">
+            <SummaryCard title="매매가격지수 (월간)" p={monthly.nationwide.매매} />
+            <SummaryCard title="전세가격지수 (월간)" p={monthly.nationwide.전세} />
+            <SummaryCard title="월세가격지수 (월간)" p={monthly.nationwide.월세} />
+          </div>
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="label" style={{ marginBottom: 8 }}>
+              월세가격지수 시도별 변동률 (전월대비)
+            </div>
+            <ChangeBarChart data={monthly.sidoByType.월세} />
+          </div>
+        </>
+      ) : (
+        <div className="card">
+          <div className="label">월간 데이터를 불러오지 못했습니다.</div>
+        </div>
+      )}
+
+      {/* 7. 단지별 상승률 (실거래 기반) */}
+      <div className="section-title">
+        <span className="num">7</span> 단지별 평균 거래가 상승률 TOP{" "}
+        <span className="pill">실거래 · 샘플 지역 · 전월대비</span>
+      </div>
+      <div className="card">
+        {aptRank && aptRank.risers.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th className="rank">#</th>
+                <th>단지</th>
+                <th>지역</th>
+                <th className="num">전월 평균</th>
+                <th className="num">당월 평균</th>
+                <th className="num">상승률</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aptRank.risers.map((a, i) => (
+                <tr key={a.region + a.apt + i}>
+                  <td className="rank">{i + 1}</td>
+                  <td>{a.apt}</td>
+                  <td>
+                    {a.region} {a.umd}
+                  </td>
+                  <td className="num">{(a.prevAvg / 10000).toFixed(2)}억</td>
+                  <td className="num">{(a.curAvg / 10000).toFixed(2)}억</td>
+                  <td className={`num ${deltaClass(a.changePct)}`}>
+                    {a.changePct > 0 ? "▲" : a.changePct < 0 ? "▼" : "―"}{" "}
+                    {Math.abs(a.changePct).toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="label">단지별 데이터를 불러오지 못했습니다.</div>
+        )}
+        <div className="label" style={{ marginTop: 12, fontSize: 12 }}>
+          ※ 국토부 실거래가 기준, 동일 단지의 전월·당월 평균 거래가 비교(면적 혼합).
+          신축 입주·대형평형 거래 등으로 변동성이 클 수 있어 참고용이며, 전국 단지로
+          확장 및 면적 보정 예정입니다.
+        </div>
+      </div>
+
+      {/* 8. 거래량 (공공데이터 실거래) */}
+      <div className="section-title">
+        <span className="num">8</span> 아파트 매매 거래량·평균가{" "}
         <span className="pill">샘플 6개 지역 · MVP</span>
       </div>
       <div className="card">

@@ -1,11 +1,21 @@
 // 한국부동산원 R-ONE OpenAPI 클라이언트
 // 주간 아파트 가격동향(매매/전세 가격지수) 조회 및 전주대비 변동률 계산
 
+import { rebKeyFromFullName } from "./regions";
+
 const BASE = "https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do";
 
+// 주간 아파트 가격지수(매매/전세)
 export const STAT_TABLES = {
   매매가격지수: "T244183132827305",
   전세가격지수: "T247713133046872",
+} as const;
+
+// 월간 아파트 가격지수(매매/전세/월세) — 월세는 주간 미제공으로 월간 사용
+export const MONTHLY_TABLES = {
+  매매: "A_2024_00045",
+  전세: "A_2024_00050",
+  월세: "A_2024_00055",
 } as const;
 
 // 17개 시도 (광역 단위) — 최상위 분류 중 권역/전국 제외용
@@ -44,6 +54,7 @@ async function fetchPage(
   startWk: string,
   endWk: string,
   pIndex: number,
+  cycle: "WK" | "MM" = "WK",
 ): Promise<{ rows: RebRow[]; total: number }> {
   const key = process.env.REB_API_KEY;
   if (!key) throw new Error("REB_API_KEY 환경변수가 설정되지 않았습니다.");
@@ -53,7 +64,7 @@ async function fetchPage(
     pIndex: String(pIndex),
     pSize: String(PAGE_SIZE),
     STATBL_ID: statblId,
-    DTACYCLE_CD: "WK",
+    DTACYCLE_CD: cycle,
     START_WRTTIME: startWk,
     END_WRTTIME: endWk,
   });
@@ -75,19 +86,65 @@ async function fetchTable(
   statblId: string,
   startWk: string,
   endWk: string,
+  cycle: "WK" | "MM" = "WK",
 ): Promise<RebRow[]> {
-  const first = await fetchPage(statblId, startWk, endWk, 1);
+  const first = await fetchPage(statblId, startWk, endWk, 1, cycle);
   const all = [...first.rows];
   const pages = Math.ceil(first.total / PAGE_SIZE);
   if (pages > 1) {
     const rest = await Promise.all(
       Array.from({ length: pages - 1 }, (_, i) =>
-        fetchPage(statblId, startWk, endWk, i + 2),
+        fetchPage(statblId, startWk, endWk, i + 2, cycle),
       ),
     );
     for (const p of rest) all.push(...p.rows);
   }
   return all;
+}
+
+// 최근 N개월 범위 (YYYYMM)
+function monthRange(monthsBack = 4): { start: string; end: string } {
+  const now = new Date();
+  const end = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const s = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+  const start = `${s.getFullYear()}${String(s.getMonth() + 1).padStart(2, "0")}`;
+  return { start, end };
+}
+
+export interface MonthlySnapshot {
+  latestMonth: string; // YYYY-MM
+  nationwide: { 매매: RegionPoint; 전세: RegionPoint; 월세: RegionPoint };
+  sidoByType: {
+    매매: RegionPoint[];
+    전세: RegionPoint[];
+    월세: RegionPoint[];
+  };
+}
+
+async function monthlyPoints(statblId: string) {
+  const { start, end } = monthRange(4);
+  const rows = await fetchTable(statblId, start, end, "MM");
+  const { latestId, byRegion } = buildRegionPoints(rows);
+  const ym = `${latestId.slice(0, 4)}-${latestId.slice(4)}`;
+  const nation =
+    byRegion.find((p) => p.region === "전국") ?? byRegion[0];
+  const sido = byRegion
+    .filter((p) => p.isSido)
+    .sort((a, b) => b.changePct - a.changePct);
+  return { ym, nation, sido };
+}
+
+export async function getMonthlySnapshot(): Promise<MonthlySnapshot> {
+  const [sale, jeonse, wolse] = await Promise.all([
+    monthlyPoints(MONTHLY_TABLES.매매),
+    monthlyPoints(MONTHLY_TABLES.전세),
+    monthlyPoints(MONTHLY_TABLES.월세),
+  ]);
+  return {
+    latestMonth: wolse.ym,
+    nationwide: { 매매: sale.nation, 전세: jeonse.nation, 월세: wolse.nation },
+    sidoByType: { 매매: sale.sido, 전세: jeonse.sido, 월세: wolse.sido },
+  };
 }
 
 // 현재 연/주차 추정 후 최근 N주를 커버하는 범위 문자열 생성
@@ -133,6 +190,8 @@ export interface MarketSnapshot {
   sidoJeonse: RegionPoint[];
   sigunguSaleTop: RegionPoint[];   // 시군구 매매 상승 Top
   sigunguJeonseTop: RegionPoint[];
+  sigunguSaleAll: RegionPoint[];   // 시군구 전체(지도용)
+  sigunguJeonseAll: RegionPoint[];
   trend: TrendPoint[];     // 전국 매매/전세 지수 추이
 }
 
@@ -207,14 +266,15 @@ export async function getMarketSnapshot(): Promise<MarketSnapshot> {
     .filter((p) => p.isSido)
     .sort((a, b) => b.changePct - a.changePct);
 
-  const sigunguSaleTop = sale.byRegion
-    .filter((p) => p.fullName.includes(">"))
-    .sort((a, b) => b.changePct - a.changePct)
-    .slice(0, 10);
-  const sigunguJeonseTop = jeonse.byRegion
-    .filter((p) => p.fullName.includes(">"))
-    .sort((a, b) => b.changePct - a.changePct)
-    .slice(0, 10);
+  // 실제 시군구만(권역 집계 제외) — rebKeyFromFullName이 null이 아니면 시군구
+  const sigunguSaleAll = sale.byRegion
+    .filter((p) => rebKeyFromFullName(p.fullName) !== null)
+    .sort((a, b) => b.changePct - a.changePct);
+  const sigunguJeonseAll = jeonse.byRegion
+    .filter((p) => rebKeyFromFullName(p.fullName) !== null)
+    .sort((a, b) => b.changePct - a.changePct);
+  const sigunguSaleTop = sigunguSaleAll.slice(0, 10);
+  const sigunguJeonseTop = sigunguJeonseAll.slice(0, 10);
 
   // 전국 추이
   const saleNationByWeek = new Map(
@@ -243,6 +303,8 @@ export async function getMarketSnapshot(): Promise<MarketSnapshot> {
     sidoJeonse,
     sigunguSaleTop,
     sigunguJeonseTop,
+    sigunguSaleAll,
+    sigunguJeonseAll,
     trend,
   };
 }
