@@ -40,3 +40,5 @@ _*.py
 /shots
 /qa
 _*.mjs
+
+.vercel
