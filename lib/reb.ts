@@ -147,14 +147,13 @@ export async function getMonthlySnapshot(): Promise<MonthlySnapshot> {
   };
 }
 
-// 현재 연/주차 추정 후 최근 N주를 커버하는 범위 문자열 생성
-function weekRange(weeksBack = 16): { start: string; end: string } {
-  const now = new Date();
-  const year = now.getFullYear();
+// 기준일(asOf) 시점 기준 최근 N주를 커버하는 범위 문자열 생성
+function weekRange(weeksBack = 16, asOf: Date = new Date()): { start: string; end: string } {
+  const year = asOf.getFullYear();
   // ISO-주차 근사: 연초 대비 경과주
   const startOfYear = new Date(year, 0, 1);
   const week = Math.ceil(
-    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7,
+    ((asOf.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7,
   );
   const end = `${year}${String(Math.min(week + 1, 53)).padStart(2, "0")}`;
   // 연초 근처면 전년도까지 포함하도록 넉넉히 start를 잡되 같은 해 기준 단순화
@@ -195,14 +194,33 @@ export interface MarketSnapshot {
   trend: TrendPoint[];     // 전국 매매/전세 지수 추이
 }
 
-function buildRegionPoints(rows: RebRow[]): {
+function buildRegionPoints(
+  rows: RebRow[],
+  asOf?: string, // YYYY-MM-DD: 이 날짜 이하의 최신 시점을 '기준'으로 사용
+): {
   latestId: string;
   prevId: string;
   byRegion: RegionPoint[];
 } {
   const weeks = Array.from(new Set(rows.map((r) => r.WRTTIME_IDTFR_ID))).sort();
-  const latestId = weeks[weeks.length - 1];
-  const prevId = weeks[weeks.length - 2] ?? latestId;
+  // 주차ID -> 기준일(WRTTIME_DESC) 매핑
+  const descByWeek = new Map<string, string>();
+  for (const r of rows) {
+    if (!descByWeek.has(r.WRTTIME_IDTFR_ID))
+      descByWeek.set(r.WRTTIME_IDTFR_ID, r.WRTTIME_DESC);
+  }
+  // 기준일이 주어지면 그 날짜 이하의 최신 주차를 선택
+  let latestIdx = weeks.length - 1;
+  if (asOf) {
+    const candidates = weeks.filter((w) => (descByWeek.get(w) ?? "") <= asOf);
+    if (candidates.length > 0) {
+      latestIdx = weeks.indexOf(candidates[candidates.length - 1]);
+    } else {
+      latestIdx = 0; // 선택 날짜가 데이터보다 이전이면 가장 오래된 주차
+    }
+  }
+  const latestId = weeks[latestIdx];
+  const prevId = weeks[latestIdx - 1] ?? latestId;
   const latest = rows.filter((r) => r.WRTTIME_IDTFR_ID === latestId);
   const prevMap = new Map(
     rows
@@ -231,15 +249,18 @@ function round(n: number, d = 2): number {
   return Math.round(n * f) / f;
 }
 
-export async function getMarketSnapshot(): Promise<MarketSnapshot> {
-  const { start, end } = weekRange(16);
+export async function getMarketSnapshot(
+  asOf?: string, // YYYY-MM-DD (기준일) — 생략 시 최신
+): Promise<MarketSnapshot> {
+  const asOfDate = asOf ? new Date(asOf) : new Date();
+  const { start, end } = weekRange(16, asOfDate);
   const [saleRows, jeonseRows] = await Promise.all([
     fetchTable(STAT_TABLES.매매가격지수, start, end),
     fetchTable(STAT_TABLES.전세가격지수, start, end),
   ]);
 
-  const sale = buildRegionPoints(saleRows);
-  const jeonse = buildRegionPoints(jeonseRows);
+  const sale = buildRegionPoints(saleRows, asOf);
+  const jeonse = buildRegionPoints(jeonseRows, asOf);
 
   const latestWeek =
     saleRows.find((r) => r.WRTTIME_IDTFR_ID === sale.latestId)?.WRTTIME_DESC ??
@@ -288,6 +309,7 @@ export async function getMarketSnapshot(): Promise<MarketSnapshot> {
       .map((r) => [r.WRTTIME_DESC, round(r.DTA_VAL)]),
   );
   const trend: TrendPoint[] = Array.from(saleNationByWeek.keys())
+    .filter((week) => !latestWeek || week <= latestWeek) // 기준일까지만
     .sort()
     .map((week) => ({
       week,

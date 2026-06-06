@@ -8,6 +8,7 @@ import { rebKeyFromFullName } from "@/lib/regions";
 import TrendChart from "@/components/TrendChart";
 import ChangeBarChart from "@/components/ChangeBarChart";
 import MapSection from "@/components/MapSection";
+import DateSelector from "@/components/DateSelector";
 
 export const revalidate = 21600; // 6시간
 
@@ -82,8 +83,13 @@ function buildMapValues(points: RegionPoint[]) {
   return out;
 }
 
-export default async function Home() {
-  const snap = await getMarketSnapshot();
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const { date: dateParam } = await searchParams;
+  const snap = await getMarketSnapshot(dateParam);
 
   const [monthlyRes, tradesRes, aptRankRes] = await Promise.allSettled([
     getMonthlySnapshot(),
@@ -112,7 +118,7 @@ export default async function Home() {
             한국공인중개사협회 회원용 주간 시장 동향 · 한국부동산원 · 공공데이터
           </div>
         </div>
-        <div className="badge">기준일 {snap.latestWeek || "—"} (주간)</div>
+        <DateSelector resolvedDate={snap.latestWeek} selected={dateParam} />
       </div>
 
       {/* 1. 동향 요약 */}
@@ -120,7 +126,7 @@ export default async function Home() {
         <span className="num">1</span> 이번 주 시장 동향 요약
       </div>
       <div className="summary-box">
-        2026년 {snap.latestWeek} 기준 전국 주간 아파트{" "}
+        {snap.latestWeek} 기준 전국 주간 아파트{" "}
         <strong className={deltaClass(saleNat.changePct)}>
           매매가격 {sign(saleNat.changePct)}
         </strong>

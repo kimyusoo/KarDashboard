@@ -1,5 +1,6 @@
 import { getMarketSnapshot, type RegionPoint } from "@/lib/reb";
 import PrintButton from "@/components/PrintButton";
+import DateSelector from "@/components/DateSelector";
 
 export const revalidate = 21600;
 export const metadata = { title: "주간 리포트 | KAR 부동산 인사이트" };
@@ -38,8 +39,13 @@ function MiniTable({ rows, title }: { rows: RegionPoint[]; title: string }) {
   );
 }
 
-export default async function WeeklyReport() {
-  const snap = await getMarketSnapshot();
+export default async function WeeklyReport({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const { date: dateParam } = await searchParams;
+  const snap = await getMarketSnapshot(dateParam);
   const { 매매: sale, 전세: jeonse } = snap.nationwide;
   const sidoSaleTop = snap.sidoSale[0];
   const sidoJeonseTop = snap.sidoJeonse[0];
@@ -48,7 +54,14 @@ export default async function WeeklyReport() {
     <main className="report-page">
       <div className="report-toolbar no-print">
         <a href="/report" className="back-link">← 리포트 목록</a>
-        <PrintButton />
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <DateSelector
+            resolvedDate={snap.latestWeek}
+            selected={dateParam}
+            basePath="/report/weekly"
+          />
+          <PrintButton />
+        </div>
       </div>
 
       <div className="report-sheet">
