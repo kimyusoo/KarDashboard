@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+const AUTH_ENABLED = false; // 로그인 비활성화 (middleware와 함께 true로 변경 시 복원)
+
 const LINKS = [
   { href: "/", label: "동향 · 핵심지표", icon: "📊" },
   { href: "/map", label: "통계기상도", icon: "🗺️" },
@@ -36,9 +38,11 @@ export default function SiteNav() {
           </Link>
           <div className="topbar-spacer" />
           <div className="topbar-right">
-            <button className="topbar-logout" onClick={logout}>
-              로그아웃
-            </button>
+            {AUTH_ENABLED && (
+              <button className="topbar-logout" onClick={logout}>
+                로그아웃
+              </button>
+            )}
           </div>
         </div>
       </div>

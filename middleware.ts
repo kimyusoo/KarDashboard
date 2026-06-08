@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 // 회원 전용 접근 보호 (간이 인증)
 // 공용 경로를 제외한 모든 페이지는 쿠키(kar_auth) 검증 후 접근 허용.
 
+// ⚠️ 로그인 보호 ON/OFF 토글 — 완성 후 true로 바꾸면 다시 로그인 화면 표시
+const AUTH_ENABLED = false;
+
 const AUTH_COOKIE = "kar_auth";
 
 function expectedToken(): string {
@@ -20,6 +23,7 @@ const PUBLIC_PREFIXES = [
 ];
 
 export function middleware(req: NextRequest) {
+  if (!AUTH_ENABLED) return NextResponse.next(); // 로그인 비활성화 (임시)
   const { pathname } = req.nextUrl;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
