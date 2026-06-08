@@ -9,7 +9,12 @@ export const metadata = {
     "서울사이버대 AI부동산빅데이터학과 심화분석 시스템 연동 — 실거래·인구·직장·공시가·상권",
 };
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const { date } = await searchParams;
   const data = await loadAllIscu(DEFAULT_REGION);
 
   return (
@@ -40,7 +45,7 @@ export default async function InsightsPage() {
         </span>
       </div>
 
-      <IscuTabs data={data} />
+      <IscuTabs data={data} selectedDate={date} />
 
       <div className="footer">
         연동 방식 3종 지원: ① iframe 임베드 ② API/CSV fetch ③ 외부 링크. 시스템별로
