@@ -193,6 +193,10 @@ tr:last-child td { border-bottom: none; }
 .branch-card .bc-addr { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 .branch-card .bc-contact { font-size: 13px; margin-top: 6px; color: var(--navy); font-weight: 700; }
 .branch-card .bc-sidohoe { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.bc-actions { display: flex; gap: 7px; margin-top: 10px; }
+.bc-btn { flex: 1; text-align: center; text-decoration: none; background: var(--grid); border: 1px solid var(--line); color: var(--navy); font-size: 12px; font-weight: 700; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-family: inherit; transition: .12s; }
+.bc-btn:hover { border-color: var(--navy); background: rgba(10,42,102,.05); }
+.toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: var(--navy-ink); color: #fff; font-size: 13px; font-weight: 600; padding: 12px 20px; border-radius: 10px; box-shadow: var(--shadow-lg); z-index: 100; }
 
 /* ====== 컨트롤 바 ====== */
 .ctrlbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 6px 0 4px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
@@ -204,6 +208,9 @@ tr:last-child td { border-bottom: none; }
 .seg-btn[data-on="true"] { background: var(--navy); color: #fff; box-shadow: 0 2px 8px -2px rgba(10,42,102,.5); }
 
 .seg-sm .seg-btn { padding: 5px 12px; font-size: 12px; }
+.sel-region { font-size: 12.5px; font-weight: 700; color: var(--accent); }
+tr[data-hl="true"] td { background: rgba(225,36,27,.08); font-weight: 800; }
+tr[data-hl="true"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 .rt-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 /* 델타 부가 라벨 */
@@ -263,6 +270,12 @@ tr:last-child td { border-bottom: none; }
 .report-card .rc-title { font-size: 18px; font-weight: 800; margin-top: 10px; color: var(--ink); }
 .report-card .rc-desc { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
 .report-card .rc-cta { color: var(--accent); font-size: 13px; font-weight: 800; margin-top: 14px; }
+
+.arch-list { max-height: 320px; overflow: auto; display: grid; gap: 6px; }
+.arch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 13px; font-weight: 600; }
+.arch-row:hover { border-color: var(--navy); }
+.arch-dl { text-decoration: none; background: var(--navy); color: #fff; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; white-space: nowrap; }
+.arch-dl:hover { background: var(--navy-2); }
 
 /* ====== 인쇄용 리포트 시트 ====== */
 .report-page { max-width: 900px; margin: 0 auto; padding: 24px; }
@@ -355,6 +368,13 @@ tr:last-child td { border-bottom: none; }
 /* ====== 모바일 — 현장 상담용 ====== */
 .mobile-stage { display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 36px; box-shadow: var(--shadow); }
 .phone { width: 300px; height: 620px; background: #0b1530; border-radius: 42px; padding: 11px; box-shadow: 0 30px 60px -20px rgba(11,21,48,.6), inset 0 0 0 2px rgba(255,255,255,.08); position: relative; flex-shrink: 0; }
+.phone-clickable { border: 0; cursor: pointer; font-family: inherit; }
+.phone-clickable:hover { box-shadow: 0 30px 70px -18px rgba(11,21,48,.7), inset 0 0 0 2px rgba(255,255,255,.12); transform: translateY(-2px); transition: .18s; }
+.phone-hint { position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%); white-space: nowrap; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.phone-overlay { position: fixed; inset: 0; background: rgba(8,20,46,.7); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.phone-overlay-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.phone-big { transform: scale(1.06); }
+.phone-close { background: #fff; color: var(--navy-ink); border: 0; border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; }
 .phone-notch { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 120px; height: 26px; background: #0b1530; border-radius: 0 0 16px 16px; z-index: 5; }
 .phone-screen { width: 100%; height: 100%; background: var(--bg); border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; }
 .m-app { display: flex; flex-direction: column; height: 100%; }

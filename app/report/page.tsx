@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReportArchive from "@/components/ReportArchive";
 
 export const metadata = { title: "리포트 | KAR 부동산 인사이트" };
 
@@ -32,6 +33,11 @@ export default function ReportHub() {
           <div className="rc-cta">리포트 열기 →</div>
         </Link>
       </div>
+
+      <div className="section-title" style={{ marginTop: 28 }}>
+        <span className="num">⤓</span> 리포트 보관함 · 파일 다운로드
+      </div>
+      <ReportArchive />
 
       <div className="footer">
         ※ 향후 협회 회원에게 주간·월간 리포트를 이메일/알림으로 자동 발송하는 기능으로 확장할 수

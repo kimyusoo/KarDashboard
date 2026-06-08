@@ -5,6 +5,7 @@ import { geoMercator, geoPath } from "d3-geo";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import { geoKeyFromFeature, rebKeyFromFullName, SIDO_PREFIX } from "@/lib/regions";
 import { SIDO, type DashboardData } from "@/lib/reb";
+import DateSelector from "./DateSelector";
 
 type Period = "weekly" | "monthly";
 type Trade = "매매" | "전세";
@@ -31,7 +32,7 @@ function pct(v: number) {
 }
 function colorCls(v: number) { return v > 0 ? "up" : v < 0 ? "down" : "flat"; }
 
-export default function WeatherMap({ data }: { data: DashboardData }) {
+export default function WeatherMap({ data, selectedDate }: { data: DashboardData; selectedDate?: string }) {
   const [geo, setGeo] = useState<FeatureCollection | null>(null);
   const [period, setPeriod] = useState<Period>("weekly");
   const [trade, setTrade] = useState<Trade>("매매");
@@ -108,7 +109,7 @@ export default function WeatherMap({ data }: { data: DashboardData }) {
             <button className="seg-btn" data-on={trade === "매매"} onClick={() => setTrade("매매")}>매매</button>
             <button className="seg-btn" data-on={trade === "전세"} onClick={() => setTrade("전세")}>전세</button>
           </div>
-          <span className="badge" style={{ boxShadow: "none" }}>📅 {pd.asOf} ({periodLabel})</span>
+          <DateSelector resolvedDate={pd.asOf} selected={selectedDate} cycleLabel={periodLabel} monthMode={period === "monthly"} basePath="/map" />
         </div>
       </div>
 

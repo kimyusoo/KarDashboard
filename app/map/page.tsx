@@ -22,7 +22,7 @@ export default async function MapPage({
           </div>
         </div>
       </div>
-      <WeatherMap data={data} />
+      <WeatherMap data={data} selectedDate={date} />
       <div className="footer">
         ☀️ 맑음(상승) · ⛅ 흐림(보합) · ☁️/🌧️ 비(하락). 색이 진할수록 변동폭이 큽니다.
         시군구 단위는 한국부동산원 공표 지역 기준이며, 미조사 지역은 회색으로 표시됩니다.

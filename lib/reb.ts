@@ -491,3 +491,50 @@ export async function getDashboardData(asOf?: string): Promise<DashboardData> {
     monthly: buildPeriod(mSale, mJeonse, mWolse, false, undefined, asOfMonthId),
   };
 }
+
+/* 임의 지역(전국/시도/시군구 fullName) 블록 — 시군구 선택 시 온디맨드 사용 */
+function buildBlockForPeriod(
+  sale: RebRow[], jeonse: RebRow[], wolse: RebRow[] | null,
+  weekly: boolean, region: string, asOf?: string, asOfId?: string,
+): RegionBlock | null {
+  const isSg = region.includes(">");
+  const sel = (r: RebRow) => isSg ? r.CLS_FULLNM === region : (r.CLS_NM === region && !r.CLS_FULLNM.includes(">"));
+  const rs = resolveIds(sale, asOf, asOfId);
+  const { latestId, prevId, ids, descMap } = rs;
+  const label = (id: string) => weekly ? (descMap.get(id) || id) : `${id.slice(0, 4)}-${id.slice(4)}`;
+  const last16 = ids.filter((i) => i <= latestId).slice(-16);
+  const mapOf = (rows: RebRow[]) => {
+    const m = new Map<string, number>();
+    for (const r of rows) if (sel(r)) m.set(r.WRTTIME_IDTFR_ID, round(r.DTA_VAL));
+    return m;
+  };
+  const sM = mapOf(sale), jM = mapOf(jeonse), wM = wolse ? mapOf(wolse) : null;
+  if (sM.size === 0 && jM.size === 0) return null;
+  const gauge = (m: Map<string, number>): Gauge => {
+    const idx = m.get(latestId); const prev = m.get(prevId);
+    return idx === undefined ? { idx: 0, chg: 0 } : { idx, chg: prev ? round(((idx - prev) / prev) * 100, 2) : 0 };
+  };
+  const trend: TrendPt[] = last16.map((id) => ({
+    t: label(id), 매매: sM.get(id) ?? 0, 전세: jM.get(id) ?? 0, ...(wM ? { 월세: wM.get(id) ?? 0 } : {}),
+  }));
+  const name = isSg ? region.split(">").pop()! : region;
+  return { name, 매매: gauge(sM), 전세: gauge(jM), ...(wolse ? { 월세: gauge(wM!) } : {}), trend };
+}
+
+export async function getRegionBlock(region: string, asOf?: string): Promise<{ weekly: RegionBlock | null; monthly: RegionBlock | null }> {
+  const asOfDate = asOf ? new Date(asOf) : new Date();
+  const wr = weekRange(16, asOfDate);
+  const mr = monthRange(15);
+  const asOfMonthId = asOf ? `${asOf.slice(0, 4)}${asOf.slice(5, 7)}` : undefined;
+  const [wSale, wJeonse, mSale, mJeonse, mWolse] = await Promise.all([
+    fetchTable(STAT_TABLES.매매가격지수, wr.start, wr.end, "WK"),
+    fetchTable(STAT_TABLES.전세가격지수, wr.start, wr.end, "WK"),
+    fetchTable(MONTHLY_TABLES.매매, mr.start, mr.end, "MM"),
+    fetchTable(MONTHLY_TABLES.전세, mr.start, mr.end, "MM"),
+    fetchTable(MONTHLY_TABLES.월세, mr.start, mr.end, "MM"),
+  ]);
+  return {
+    weekly: buildBlockForPeriod(wSale, wJeonse, null, true, region, asOf, undefined),
+    monthly: buildBlockForPeriod(mSale, mJeonse, mWolse, false, region, undefined, asOfMonthId),
+  };
+}

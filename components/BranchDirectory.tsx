@@ -5,8 +5,14 @@ import { groupBySidohoe, BRANCH_COUNT, SIDOHOE_COUNT } from "@/lib/branches";
 
 export default function BranchDirectory() {
   const [q, setQ] = useState("");
+  const [toast, setToast] = useState(false);
   const groups = useMemo(() => groupBySidohoe(), []);
   const kw = q.trim();
+
+  function showSoon() {
+    setToast(true);
+    setTimeout(() => setToast(false), 2200);
+  }
 
   const filtered = useMemo(() => {
     if (!kw) return groups;
@@ -57,6 +63,17 @@ export default function BranchDirectory() {
                   ☎ {b.tel}
                   {b.fax ? ` · 팩스 ${b.fax}` : ""}
                 </div>
+                <div className="bc-actions">
+                  <a
+                    className="bc-btn"
+                    href={`https://map.naver.com/p/search/${encodeURIComponent(b.address)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    📍 위치
+                  </a>
+                  <button className="bc-btn" onClick={showSoon}>📊 지회별 데이터</button>
+                </div>
               </div>
             ))}
           </div>
@@ -67,6 +84,10 @@ export default function BranchDirectory() {
         <div className="card">
           <div className="label">“{kw}” 검색 결과가 없습니다.</div>
         </div>
+      )}
+
+      {toast && (
+        <div className="toast">📊 지회별 데이터는 준비 중입니다. (지회별 분석 데이터 제공 후 공개 예정)</div>
       )}
     </div>
   );
