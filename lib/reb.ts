@@ -330,3 +330,164 @@ export async function getMarketSnapshot(
     trend,
   };
 }
+
+/* =====================================================================
+   통합 대시보드 페이로드 (주간/월간 × 전국+17시도 + 시군구)
+   ===================================================================== */
+
+export interface Gauge { idx: number; chg: number }
+export interface TrendPt { t: string; 매매: number; 전세: number; 월세?: number }
+export interface RegionBlock {
+  name: string;
+  매매: Gauge;
+  전세: Gauge;
+  월세?: Gauge;
+  trend: TrendPt[];
+}
+export interface SidoChg {
+  name: string;
+  매매: number; 전세: number; 월세?: number;
+  idx매매: number; idx전세: number;
+}
+export interface SigunguItem {
+  name: string; fullName: string; parent: string;
+  매매: number; 전세: number; idx매매: number;
+}
+export interface PeriodData {
+  asOf: string;
+  hasWolse: boolean;
+  regions: Record<string, RegionBlock>;
+  sido: SidoChg[];
+  sigungu: SigunguItem[];
+}
+export interface DashboardData {
+  weekly: PeriodData;
+  monthly: PeriodData;
+}
+
+function resolveIds(rows: RebRow[], asOf?: string, asOfId?: string) {
+  const ids = Array.from(new Set(rows.map((r) => r.WRTTIME_IDTFR_ID))).sort();
+  const descMap = new Map<string, string>();
+  for (const r of rows) if (!descMap.has(r.WRTTIME_IDTFR_ID)) descMap.set(r.WRTTIME_IDTFR_ID, r.WRTTIME_DESC);
+  let cand = ids;
+  if (asOfId) cand = ids.filter((i) => i <= asOfId);
+  else if (asOf) cand = ids.filter((i) => (descMap.get(i) || "") <= asOf);
+  if (!cand.length) cand = [ids[0]];
+  const li = ids.indexOf(cand[cand.length - 1]);
+  return { ids, descMap, latestId: ids[li], prevId: ids[li - 1] ?? ids[li] };
+}
+
+function topGauge(rows: RebRow[], latestId: string, prevId: string, name: string): Gauge {
+  const cur = rows.find((r) => r.WRTTIME_IDTFR_ID === latestId && r.CLS_NM === name && !r.CLS_FULLNM.includes(">"));
+  if (!cur) return { idx: 0, chg: 0 };
+  const prev = rows.find((r) => r.WRTTIME_IDTFR_ID === prevId && r.CLS_NM === name && !r.CLS_FULLNM.includes(">"));
+  const chg = prev && prev.DTA_VAL ? round(((cur.DTA_VAL - prev.DTA_VAL) / prev.DTA_VAL) * 100, 2) : 0;
+  return { idx: round(cur.DTA_VAL), chg };
+}
+
+function buildPeriod(
+  sale: RebRow[],
+  jeonse: RebRow[],
+  wolse: RebRow[] | null,
+  weekly: boolean,
+  asOf?: string,
+  asOfId?: string,
+): PeriodData {
+  const rs = resolveIds(sale, asOf, asOfId);
+  const { latestId, prevId, ids, descMap } = rs;
+  const label = (id: string) =>
+    weekly ? (descMap.get(id) || id) : `${id.slice(0, 4)}-${id.slice(4)}`;
+  const asOfLabel = weekly ? (descMap.get(latestId) || "") : `${latestId.slice(0, 4)}-${latestId.slice(4)}`;
+
+  const names = ["전국", ...SIDO];
+  const last16 = ids.filter((i) => i <= latestId).slice(-16);
+
+  // 추이 시리즈 (전국+시도)
+  function seriesMap(rows: RebRow[]) {
+    const m = new Map<string, Map<string, number>>(); // name -> id -> val
+    for (const r of rows) {
+      if (r.CLS_FULLNM.includes(">")) continue;
+      if (!names.includes(r.CLS_NM)) continue;
+      if (!last16.includes(r.WRTTIME_IDTFR_ID)) continue;
+      if (!m.has(r.CLS_NM)) m.set(r.CLS_NM, new Map());
+      m.get(r.CLS_NM)!.set(r.WRTTIME_IDTFR_ID, round(r.DTA_VAL));
+    }
+    return m;
+  }
+  const sM = seriesMap(sale), jM = seriesMap(jeonse), wM = wolse ? seriesMap(wolse) : null;
+
+  const regions: Record<string, RegionBlock> = {};
+  for (const nm of names) {
+    const trend: TrendPt[] = last16.map((id) => ({
+      t: label(id),
+      매매: sM.get(nm)?.get(id) ?? 0,
+      전세: jM.get(nm)?.get(id) ?? 0,
+      ...(wM ? { 월세: wM.get(nm)?.get(id) ?? 0 } : {}),
+    }));
+    regions[nm] = {
+      name: nm,
+      매매: topGauge(sale, latestId, prevId, nm),
+      전세: topGauge(jeonse, latestId, prevId, nm),
+      ...(wolse ? { 월세: topGauge(wolse, latestId, prevId, nm) } : {}),
+      trend,
+    };
+  }
+
+  const sido: SidoChg[] = SIDO.map((nm) => ({
+    name: nm,
+    매매: regions[nm].매매.chg,
+    전세: regions[nm].전세.chg,
+    ...(wolse ? { 월세: regions[nm].월세?.chg ?? 0 } : {}),
+    idx매매: regions[nm].매매.idx,
+    idx전세: regions[nm].전세.idx,
+  }));
+
+  // 시군구 (매매 기준 + 전세 병합)
+  const prevSaleById = new Map<number, number>();
+  for (const r of sale) if (r.WRTTIME_IDTFR_ID === prevId) prevSaleById.set(r.CLS_ID, r.DTA_VAL);
+  const prevJeonseById = new Map<number, number>();
+  for (const r of jeonse) if (r.WRTTIME_IDTFR_ID === prevId) prevJeonseById.set(r.CLS_ID, r.DTA_VAL);
+  const jeonseLatest = new Map<number, number>();
+  for (const r of jeonse) if (r.WRTTIME_IDTFR_ID === latestId) jeonseLatest.set(r.CLS_ID, r.DTA_VAL);
+
+  const sigungu: SigunguItem[] = [];
+  for (const r of sale) {
+    if (r.WRTTIME_IDTFR_ID !== latestId) continue;
+    if (rebKeyFromFullName(r.CLS_FULLNM) === null) continue;
+    const ps = prevSaleById.get(r.CLS_ID);
+    const 매매chg = ps ? round(((r.DTA_VAL - ps) / ps) * 100, 2) : 0;
+    const jl = jeonseLatest.get(r.CLS_ID);
+    const pj = prevJeonseById.get(r.CLS_ID);
+    const 전세chg = jl && pj ? round(((jl - pj) / pj) * 100, 2) : 0;
+    sigungu.push({
+      name: r.CLS_NM,
+      fullName: r.CLS_FULLNM,
+      parent: r.CLS_FULLNM.split(">")[0],
+      매매: 매매chg,
+      전세: 전세chg,
+      idx매매: round(r.DTA_VAL),
+    });
+  }
+
+  return { asOf: asOfLabel, hasWolse: !!wolse, regions, sido, sigungu };
+}
+
+export async function getDashboardData(asOf?: string): Promise<DashboardData> {
+  const asOfDate = asOf ? new Date(asOf) : new Date();
+  const wr = weekRange(16, asOfDate);
+  const mr = monthRange(15);
+  const asOfMonthId = asOf ? `${asOf.slice(0, 4)}${asOf.slice(5, 7)}` : undefined;
+
+  const [wSale, wJeonse, mSale, mJeonse, mWolse] = await Promise.all([
+    fetchTable(STAT_TABLES.매매가격지수, wr.start, wr.end, "WK"),
+    fetchTable(STAT_TABLES.전세가격지수, wr.start, wr.end, "WK"),
+    fetchTable(MONTHLY_TABLES.매매, mr.start, mr.end, "MM"),
+    fetchTable(MONTHLY_TABLES.전세, mr.start, mr.end, "MM"),
+    fetchTable(MONTHLY_TABLES.월세, mr.start, mr.end, "MM"),
+  ]);
+
+  return {
+    weekly: buildPeriod(wSale, wJeonse, null, true, asOf, undefined),
+    monthly: buildPeriod(mSale, mJeonse, mWolse, false, undefined, asOfMonthId),
+  };
+}

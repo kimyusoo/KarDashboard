@@ -5,13 +5,15 @@ import { useState } from "react";
 
 // 기준일 선택기: 선택 날짜 이하의 최신 주차 데이터를 조회
 export default function DateSelector({
-  resolvedDate, // 실제 적용된 기준일 (YYYY-MM-DD)
+  resolvedDate, // 실제 적용된 기준일 (YYYY-MM-DD 또는 YYYY-MM)
   selected, // 사용자가 선택한 날짜 (있으면)
   basePath = "/", // 날짜 적용 시 이동할 경로
+  cycleLabel = "주간", // 주간/월간 표기
 }: {
   resolvedDate: string;
   selected?: string;
   basePath?: string;
+  cycleLabel?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -27,7 +29,7 @@ export default function DateSelector({
   return (
     <div className="date-selector">
       <button className="badge date-badge" onClick={() => setOpen((v) => !v)}>
-        📅 기준일 {resolvedDate || "—"} (주간) ▾
+        📅 기준일 {resolvedDate || "—"} ({cycleLabel}) ▾
       </button>
       {open && (
         <div className="date-pop">

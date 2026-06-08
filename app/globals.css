@@ -194,6 +194,41 @@ tr:last-child td { border-bottom: none; }
 .branch-card .bc-contact { font-size: 13px; margin-top: 6px; color: var(--navy); font-weight: 700; }
 .branch-card .bc-sidohoe { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
+/* ====== 컨트롤 바 ====== */
+.ctrlbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 6px 0 4px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.ctrl-left, .ctrl-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ctrl-label { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.region-select { background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; font-size: 14px; font-weight: 700; color: var(--navy); font-family: inherit; cursor: pointer; }
+.seg { display: inline-flex; background: var(--grid); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg-btn { border: 0; background: transparent; color: var(--muted); font-weight: 700; font-size: 13px; padding: 7px 16px; border-radius: 7px; cursor: pointer; transition: .12s; }
+.seg-btn[data-on="true"] { background: var(--navy); color: #fff; box-shadow: 0 2px 8px -2px rgba(10,42,102,.5); }
+
+.seg-sm .seg-btn { padding: 5px 12px; font-size: 12px; }
+.rt-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* 델타 부가 라벨 */
+.delta-sub { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+
+/* 더보기 */
+.more-btn { display: inline-block; margin-top: 10px; background: transparent; border: 1px solid var(--line); color: var(--navy); font-weight: 700; font-size: 12.5px; padding: 6px 13px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+.more-btn:hover { background: var(--grid); }
+.summary-more { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 9px; }
+.sm-row { font-size: 13.5px; line-height: 1.65; color: var(--ink); }
+.sm-row b { color: var(--navy); background: rgba(10,42,102,.07); padding: 1px 7px; border-radius: 5px; margin-right: 4px; font-size: 12.5px; }
+
+/* 시도 2단 (차트+표) */
+.sido-2col { display: grid; grid-template-columns: 1fr 150px; gap: 12px; align-items: center; }
+@media (max-width: 720px) { .sido-2col { grid-template-columns: 1fr; } }
+.sido-table { max-height: 320px; overflow: auto; }
+.sido-table table { font-size: 12px; }
+.sido-table th, .sido-table td { padding: 5px 6px; }
+
+/* InfoTip */
+.infotip { position: relative; display: inline-flex; margin-left: 5px; vertical-align: middle; }
+.infotip-btn { border: 0; background: transparent; color: var(--axis); font-size: 12px; cursor: help; padding: 0; line-height: 1; }
+.infotip-btn:hover { color: var(--navy); }
+.infotip-pop { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: 250px; background: var(--navy-ink); color: #fff; font-size: 11.5px; font-weight: 500; line-height: 1.55; padding: 10px 12px; border-radius: 8px; z-index: 70; box-shadow: var(--shadow-lg); letter-spacing: 0; }
+
 /* ====== 기준일 선택기 ====== */
 .date-selector { position: relative; }
 .date-badge { cursor: pointer; border-color: var(--navy); color: var(--navy); }
