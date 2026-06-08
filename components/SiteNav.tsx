@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "동향 · 핵심지표", icon: "📊" },
+  { href: "/map", label: "통계기상도", icon: "🗺️" },
   { href: "/insights", label: "AI 빅데이터", icon: "🧠" },
   { href: "/branches", label: "지회 안내", icon: "📍" },
   { href: "/report", label: "리포트", icon: "📄" },

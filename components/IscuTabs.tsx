@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { IscuSystemData } from "@/lib/iscu";
+import IscuSample from "./IscuSample";
 
 function deltaClass(t?: "up" | "down" | "flat") {
   return t === "up" ? "up" : t === "down" ? "down" : "flat";
@@ -81,6 +82,15 @@ export default function IscuTabs({ data }: { data: IscuSystemData[] }) {
               </div>
             );
           })}
+        </div>
+
+        {/* 예시 시각화 (연동 시 실데이터) */}
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span className="pill" style={{ background: "rgba(107,63,214,.1)", color: "#6b3fd6" }}>예시 시각화</span>
+            <span className="label" style={{ fontSize: 12 }}>데이터 연동 시 이런 형태로 제공됩니다 (아래는 샘플 데이터)</span>
+          </div>
+          <IscuSample id={s.id} />
         </div>
 
         {/* 활용 시나리오 */}
