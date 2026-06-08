@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LAWD_LIST, TRADE_LABEL, type TradeType } from "@/lib/molit";
+import { LAWD_BY_SIDO, LAWD_SIDO_LIST, TRADE_LABEL, type TradeType } from "@/lib/molit";
 import InfoTip from "./InfoTip";
 
 const TYPES: TradeType[] = ["sale", "jeonse", "wolse"];
@@ -13,9 +13,11 @@ function fmtAmount(type: TradeType, v: number) {
 }
 function ym(s: string) { return `${s.slice(0, 4)}.${s.slice(4)}`; }
 
-function Controls({ type, setType, code, setCode }: {
-  type: TradeType; setType: (t: TradeType) => void; code: string; setCode: (c: string) => void;
+function Controls({ type, setType, sido, setSido, code, setCode }: {
+  type: TradeType; setType: (t: TradeType) => void;
+  sido: string; setSido: (s: string) => void; code: string; setCode: (c: string) => void;
 }) {
+  const sgList = LAWD_BY_SIDO[sido] ?? [];
   return (
     <div className="rt-controls">
       <div className="seg seg-sm">
@@ -23,8 +25,13 @@ function Controls({ type, setType, code, setCode }: {
           <button key={t} className="seg-btn" data-on={type === t} onClick={() => setType(t)}>{TRADE_LABEL[t]}</button>
         ))}
       </div>
+      <select className="region-select" value={sido} onChange={(e) => {
+        const ns = e.target.value; setSido(ns); setCode((LAWD_BY_SIDO[ns] ?? [])[0]?.code ?? "");
+      }}>
+        {LAWD_SIDO_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
       <select className="region-select" value={code} onChange={(e) => setCode(e.target.value)}>
-        {LAWD_LIST.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
+        {sgList.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
       </select>
     </div>
   );
@@ -35,11 +42,13 @@ interface VolResp { type: TradeType; curMonth: string; prevMonth: string; count:
 
 export default function RealtimeSection() {
   const [rType, setRType] = useState<TradeType>("sale");
+  const [rSido, setRSido] = useState("서울");
   const [rCode, setRCode] = useState("11680");
   const [rank, setRank] = useState<RankResp | null>(null);
   const [rankLoading, setRankLoading] = useState(true);
 
   const [vType, setVType] = useState<TradeType>("sale");
+  const [vSido, setVSido] = useState("서울");
   const [vCode, setVCode] = useState("11680");
   const [vol, setVol] = useState<VolResp | null>(null);
   const [volLoading, setVolLoading] = useState(true);
@@ -66,7 +75,7 @@ export default function RealtimeSection() {
         <InfoTip text="국토부 실거래가 기준, 선택 지역에서 동일 단지의 전월·당월 평균(매매가/전세보증금/월세)을 비교한 상승률입니다. 면적 혼합·표본 적어 변동성이 있을 수 있어 참고용입니다." />
       </div>
       <div className="card">
-        <Controls type={rType} setType={setRType} code={rCode} setCode={setRCode} />
+        <Controls type={rType} setType={setRType} sido={rSido} setSido={setRSido} code={rCode} setCode={setRCode} />
         {rankLoading ? (
           <div className="label" style={{ marginTop: 14 }}>불러오는 중…</div>
         ) : rank && rank.risers.length > 0 ? (
@@ -99,7 +108,7 @@ export default function RealtimeSection() {
         <InfoTip text="국토부 실거래가 신고 기준 월별 거래건수와 평균 금액(매매가/전세보증금/월세)입니다. 신고지연을 고려해 직전월 기준으로 표시합니다." />
       </div>
       <div className="card">
-        <Controls type={vType} setType={setVType} code={vCode} setCode={setVCode} />
+        <Controls type={vType} setType={setVType} sido={vSido} setSido={setVSido} code={vCode} setCode={setVCode} />
         {volLoading ? (
           <div className="label" style={{ marginTop: 14 }}>불러오는 중…</div>
         ) : vol ? (
